@@ -1,16 +1,17 @@
 # SMS Customer Service Chatbot Backend
 
-A Python FastAPI backend for an SMS customer service chatbot. The system processes incoming SMS webhooks, loads local Markdown documentation as a knowledge base, randomly injects a dynamic personality persona, and generates an LLM response using standard OpenAI SDK.
+A Python FastAPI backend for an SMS customer service chatbot. The system processes incoming SMS webhooks, loads local Markdown documentation as a knowledge base, dynamically assigns personalities or initiative mappings by destination phone number (`To`), and generates an LLM response using standard OpenAI SDK.
 
 ---
 
 ## Features
 
 - **FastAPI Webhook**: Serves a `POST /webhook/sms` endpoint accepting form payloads (`From`, `To`, `Body`).
-- **Knowledge Base Loader**: Scans a local `/docs` directory on startup and aggregates all `.md` files into context appended to system instructions.
-- **Personality Engine**: Configured with 3 distinct conversational personas ("Warm and Empathetic", "Crisp and Professional", "Witty and Casual") randomly selected for each request.
-- **LLM Integration**: Uses standard `openai` SDK to generate concise SMS-suitable responses using system prompt, knowledge base context, and user input.
-- **Comprehensive Testing**: Pytest unit tests using FastAPI `TestClient` covering file loading, personality engine, and mocked LLM webhook responses.
+- **Initiative & Phone Mapping**: Dynamically identifies the target initiative (knowledge base subfolder and personality persona) based on the recipient phone number (`To`).
+- **Knowledge Base Loader**: Scans local `/docs` (and initiative subdirectories like `/docs/support`) on startup and aggregates `.md` files into LLM context.
+- **Personality Engine**: Configured with 3 distinct conversational personas ("Warm and Empathetic", "Crisp and Professional", "Witty and Casual") assigned via initiative mapping or random selection per request.
+- **LLM Integration**: Uses standard `openai` SDK to generate concise SMS-suitable responses combining system prompt, knowledge base context, and user input.
+- **Comprehensive Testing**: Pytest unit tests using FastAPI `TestClient` covering file loading, phone number mapping, personality engine, and mocked LLM webhook responses.
 
 ---
 
@@ -20,7 +21,13 @@ A Python FastAPI backend for an SMS customer service chatbot. The system process
 .
 ├── docs/
 │   ├── company_info.md
-│   └── faq.md
+│   ├── faq.md
+│   ├── sales/
+│   │   └── pricing.md
+│   ├── support/
+│   │   └── help.md
+│   └── vip/
+│       └── concierge.md
 ├── knowledge_base.py
 ├── personality_engine.py
 ├── llm_service.py
@@ -74,21 +81,21 @@ pytest -v
 
 ## Example Usage
 
-Send an SMS webhook simulation request via `curl`:
+### 1. Standard Request (Mapped Phone Number)
+Send an SMS to the Support initiative number (`+18005550100`):
 
 ```bash
 curl -X POST "http://localhost:8000/webhook/sms" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "From=+15551234567&To=+15557654321&Body=What%20is%20your%20return%20policy%3F"
+  -d "From=+15551234567&To=+18005550100&Body=How%20do%20I%20get%20help%3F"
 ```
 
-### Example Response:
-
+### Response:
 ```json
 {
   "sender": "+15551234567",
-  "recipient": "+15557654321",
-  "persona": "Crisp and Professional",
-  "reply": "Items can be returned within 30 days of delivery for a full refund."
+  "recipient": "+18005550100",
+  "persona": "Warm and Empathetic",
+  "reply": "For support requests, please provide your ticket ID and I'd be happy to assist!"
 }
 ```

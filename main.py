@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import logging
 
 from knowledge_base import load_knowledge_base
-from personality_engine import get_random_persona
+from personality_engine import get_persona
 from llm_service import LLMService
 
 # Setup logging
@@ -19,21 +19,19 @@ class SMSResponse(BaseModel):
 
 # Application state container
 app_state = {
-    "knowledge_base": "",
+    "docs_dir": "docs",
     "llm_service": None
 }
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load knowledge base from /docs on startup
-    logger.info("Loading knowledge base from /docs directory...")
-    app_state["knowledge_base"] = load_knowledge_base("docs")
+    logger.info("Initializing SMS Chatbot service...")
     app_state["llm_service"] = LLMService()
     yield
 
 app = FastAPI(
     title="SMS Customer Service Chatbot",
-    description="FastAPI backend for SMS customer service chatbot with dynamic personality injection and Markdown knowledge base.",
+    description="FastAPI backend for SMS customer service chatbot with dynamic personality injection, initiative mapping by phone number, and Markdown knowledge base.",
     lifespan=lifespan
 )
 
@@ -46,17 +44,20 @@ async def handle_sms_webhook(
     """
     Webhook endpoint to process incoming SMS form payload.
     - Accepts Form data: From, To, Body
-    - Randomly injects a personality persona
-    - Combines with loaded Markdown knowledge base
+    - Identifies initiative knowledge base & personality based on recipient phone number ('To')
     - Generates response using LLM service
     """
     if not Body.strip():
         raise HTTPException(status_code=400, detail="SMS Body cannot be empty.")
 
-    persona_name, persona_instructions = get_random_persona()
+    # Retrieve persona based on recipient phone number ('To')
+    persona_name, persona_instructions = get_persona(phone_number=To)
+
+    # Load initiative-specific knowledge context based on recipient phone number ('To')
+    docs_dir = app_state.get("docs_dir", "docs")
+    knowledge_context = load_knowledge_base(docs_dir=docs_dir, phone_number=To)
 
     llm_service: LLMService = app_state["llm_service"] or LLMService()
-    knowledge_context: str = app_state.get("knowledge_base", "")
 
     try:
         reply = llm_service.generate_response(

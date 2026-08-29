@@ -1,5 +1,6 @@
 import random
-from typing import Dict
+from typing import Dict, Tuple
+from knowledge_base import INITIATIVE_MAP
 
 PERSONAS: Dict[str, str] = {
     "Warm and Empathetic": (
@@ -16,10 +17,19 @@ PERSONAS: Dict[str, str] = {
     ),
 }
 
-def get_random_persona() -> tuple[str, str]:
+def get_persona(phone_number: str | None = None) -> Tuple[str, str]:
     """
-    Randomly selects one persona from PERSONAS dictionary.
-    Returns a tuple of (persona_name, persona_instructions).
+    Retrieves personality instructions. If phone_number maps to a specific initiative
+    with an assigned personality, returns that persona. Otherwise, randomly selects one.
     """
+    if phone_number and phone_number in INITIATIVE_MAP:
+        assigned = INITIATIVE_MAP[phone_number].get("personality")
+        if assigned in PERSONAS:
+            return assigned, PERSONAS[assigned]
+
     name = random.choice(list(PERSONAS.keys()))
     return name, PERSONAS[name]
+
+def get_random_persona() -> Tuple[str, str]:
+    """Fallback alias for random selection."""
+    return get_persona(None)
