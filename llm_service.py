@@ -3,10 +3,21 @@ from openai import AsyncOpenAI
 from typing import List, Dict
 
 class LLMService:
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini"):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None
+    ):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "mock-key")
-        self.client = AsyncOpenAI(api_key=self.api_key)
-        self.model = model
+        self.base_url = base_url or os.getenv("LOCAL_LLM_URL", None)
+        self.model = model or os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+        kwargs = {"api_key": self.api_key}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+
+        self.client = AsyncOpenAI(**kwargs)
 
     async def generate_response(
         self,
@@ -20,6 +31,7 @@ class LLMService:
         - System prompt (persona instructions + knowledge base context + constraints)
         - Windowed chat history (up to last 5 back-and-forth turns)
         - User message
+        - Flexible support for OpenAI, LM Studio, Ollama, or local inference servers.
         """
         system_prompt = (
             f"{persona_instructions}\n\n"
