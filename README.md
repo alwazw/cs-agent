@@ -19,9 +19,10 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
    - Dispatches system alerts (`/api/c2/alerts`).
    - Built-in simulation endpoint (`/api/c2/demo/simulate?scenario=token_spike`) for testing sandbox notification alerts.
 
-4. **Open WebUI + Docker Model Runner & Containerization (`docker-compose.yml`)**:
-   - Runs Open WebUI dashboard on port `3000`.
-   - Orchestrates C2 backend, Redis session store, and Open WebUI services via Docker Compose.
+4. **Non-Conflicting Port Mapping & Docker Compose Containerization (`docker-compose.yml`)**:
+   - Reconfigurable ports to avoid collisions with existing host services (e.g. existing Redis on 6379, existing Open WebUI on 3000, existing apps on 8000).
+   - Defaults: `c2-backend` on port `8085:8000`, `open-webui-c2` on port `3005:8080`, `c2-redis` on port `6380:6379`.
+   - Ports can be customized via environment variables (`C2_PORT`, `WEBUI_PORT`, `REDIS_HOST_PORT`).
 
 ---
 
@@ -62,13 +63,18 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
 ```bash
 docker compose up -d --build
 ```
-- Open WebUI Interface: `http://localhost:3000`
-- FastAPI C2 Backend & API Docs: `http://localhost:8000/docs`
+- Open WebUI Interface: `http://localhost:3005` (configurable via `WEBUI_PORT`)
+- FastAPI C2 Backend & API Docs: `http://localhost:8085/docs` (configurable via `C2_PORT`)
 
-### 2. Run Locally (Development)
+### 2. Custom Port Deployment Example
+```bash
+C2_PORT=8095 WEBUI_PORT=3015 REDIS_HOST_PORT=6385 docker compose up -d --build
+```
+
+### 3. Run Locally (Development)
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8085
 ```
 
 ---
