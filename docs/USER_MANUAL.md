@@ -14,7 +14,17 @@ Your AI Chatbot acts as an instant 24/7 front desk that responds to incoming cus
 
 ---
 
-## 2. Customer Interaction & Conversation Flow
+## 2. Default Port Mapping & Web Interfaces
+
+To avoid port collisions on existing infrastructure, the service defaults to non-conflicting port ranges:
+
+* **C2 Backend & API Docs:** `http://localhost:9876/docs` (configurable via `C2_PORT`)
+* **Open WebUI Interface:** `http://localhost:9875` (configurable via `WEBUI_PORT`)
+* **Redis Session Store:** `localhost:9874` (configurable via `REDIS_HOST_PORT`)
+
+---
+
+## 3. Customer Interaction & Conversation Flow
 
 Below is the standard workflow from incoming text to resolution or live-agent handoff:
 
@@ -29,7 +39,7 @@ Below is the standard workflow from incoming text to resolution or live-agent ha
 
 ---
 
-## 3. Step-by-Step Guide: Booking Appointments & Override Feature
+## 4. Step-by-Step Guide: Booking Appointments & Override Feature
 
 Standard bookings can trigger payment links. When you need to book an appointment directly (VIP client, internal bypass, or offline payment):
 
@@ -41,28 +51,28 @@ Standard bookings can trigger payment links. When you need to book an appointmen
 
 ---
 
-## 4. Notification Center & System Monitoring
+## 5. Notification Center & System Monitoring
 
 The Notification Center tracks stack health and unexpected usage surges:
 
 * **Token Consumption Alerts:** Triggers a `WARNING` or `CRITICAL` alert if token generation rapidly spikes (indicating runaway loops or scrapers).
 * **Stack Health Status:** Monitors model engine latency and database connection integrity.
-* **Simulated Demo Environment:** Click **"Run Simulation Test"** under Dashboard Settings to simulate active traffic spikes and test system alert triggers without impacting production channels.
+* **Simulated Demo Environment:** Click **"Run Simulation Test"** under Dashboard Settings or POST to `/api/c2/demo/simulate` to test system alert triggers without impacting production channels.
 
 ---
 
-## 5. Editing Company Knowledge Base & FAQs Live
+## 6. Editing Company Knowledge Base & FAQs Live
 
 You do not need developers to change your bot's answers or business details:
 
 1. Navigate to the **Knowledge Base** tab in the C2 Dashboard.
-2. Select any `.md` file (e.g., `services.md` or `pricing.md`).
+2. Select any `.md` file (e.g., `company_info.md`, `faq.md`, or `sales/pricing.md`).
 3. Make your edits directly in the web markdown editor.
 4. Click **Save File**. Changes take effect instantly across all incoming SMS chats—no server restarts needed.
 
 ---
 
-## 6. Compliance & Carrier Opt-Out Keywords
+## 7. Compliance & Carrier Opt-Out Keywords
 
 The system automatically manages carrier compliance requirements:
 * If a client texts `STOP` or `UNSUBSCRIBE`, the bot immediately pauses responses and marks the number as opted out.

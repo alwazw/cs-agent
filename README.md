@@ -4,7 +4,7 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
 
 ---
 
-## Key Pillars & Architecture
+## Key Pillars & System Architecture
 
 1. **Payment-Bypass Calendar Booking Override (`calendar_service.py`)**:
    - Enables agents or automated triggers to schedule appointments directly into calendars bypassing invoice generation.
@@ -20,8 +20,8 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
    - Built-in simulation endpoint (`/api/c2/demo/simulate?scenario=token_spike`) for testing sandbox notification alerts.
 
 4. **Non-Conflicting Port Mapping & Docker Compose Containerization (`docker-compose.yml`)**:
-   - Reconfigurable ports to avoid collisions with existing host services (e.g. existing Redis on 6379, existing Open WebUI on 3000, existing apps on 8000).
-   - Defaults: `c2-backend` on port `8085:8000`, `open-webui-c2` on port `3005:8080`, `c2-redis` on port `6380:6379`.
+   - Reconfigurable ports to avoid collisions with existing host services (e.g., existing Redis on 6379, existing Open WebUI on 3000, existing apps on 8000).
+   - Defaults: `c2-backend` on port `9876:8000`, `open-webui-c2` on port `9875:8080`, `c2-redis` on port `9874:6379`.
    - Ports can be customized via environment variables (`C2_PORT`, `WEBUI_PORT`, `REDIS_HOST_PORT`).
 
 ---
@@ -63,18 +63,20 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
 ```bash
 docker compose up -d --build
 ```
-- Open WebUI Interface: `http://localhost:3005` (configurable via `WEBUI_PORT`)
-- FastAPI C2 Backend & API Docs: `http://localhost:8085/docs` (configurable via `C2_PORT`)
+- Open WebUI Interface: `http://localhost:9875` (configurable via `WEBUI_PORT`)
+- FastAPI C2 Backend & API Docs: `http://localhost:9876/docs` (configurable via `C2_PORT`)
 
 ### 2. Custom Port Deployment Example
 ```bash
-C2_PORT=8095 WEBUI_PORT=3015 REDIS_HOST_PORT=6385 docker compose up -d --build
+C2_PORT=9876 WEBUI_PORT=9875 REDIS_HOST_PORT=9874 docker compose up -d --build
 ```
 
-### 3. Run Locally (Development)
+### 3. Local Development Setup (Virtual Environment)
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8085
+uvicorn main:app --reload --host 0.0.0.0 --port 9876
 ```
 
 ---
