@@ -2,6 +2,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, HTTPException, Response, Request, status, Header
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from twilio.twiml.messaging_response import MessagingResponse
@@ -17,6 +18,7 @@ from session_manager import (
     save_agent_message,
     close_redis,
 )
+from c2_router import router as c2_router
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -45,17 +47,31 @@ app_state = {
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing SMS Chatbot service with AsyncOpenAI and Redis session manager...")
+    logger.info("Initializing Autonomous Communication & C2 Engine...")
     app_state["llm_service"] = LLMService()
     yield
     logger.info("Closing Redis connections...")
     await close_redis()
 
 app = FastAPI(
-    title="SMS Customer Service Chatbot",
-    description="FastAPI backend for SMS customer service chatbot with session persistence, HITL handoff, opt-out handling, and TwiML integration.",
+    title="Autonomous Communication & C2 Engine",
+    description="FastAPI backend for SMS customer service chatbot with C2 dashboard engine, payment bypass calendar override, Redis session persistence, and HITL handoff.",
     lifespan=lifespan
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(c2_router)
+
+@app.get("/")
+def root():
+    return {"status": "running", "engine": "Autonomous SMS & C2 Control Panel"}
 
 @app.post("/webhook/sms")
 async def handle_sms_webhook(

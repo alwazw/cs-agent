@@ -153,3 +153,53 @@ def test_sms_webhook_hitl_escalation():
 
         assert agent_resp.status_code == 200
         assert agent_resp.json()["state"] == "AGENT_CONNECTED"
+
+@pytest.mark.anyio
+async def test_calendar_service_override():
+    from calendar_service import schedule_appointment_override
+    res = await schedule_appointment_override(
+        customer_phone="+15551112222",
+        customer_name="Alice Smith",
+        appointment_time="2026-12-01T10:00:00",
+        service_name="VIP Consultation"
+    )
+    assert res["status"] == "success"
+    assert res["event"]["payment_status"] == "BOOKED_UNPAID_OVERRIDE"
+    assert "Alice Smith" in res["event"]["summary"]
+    assert "https://meet.google.com/override-" in res["sms_confirmation"]
+
+def test_c2_router_file_management():
+    with TestClient(app) as client:
+        # 1. List files
+        list_resp = client.get("/api/c2/files")
+        assert list_resp.status_code == 200
+        assert isinstance(list_resp.json(), list)
+
+        # 2. Write file
+        write_resp = client.post(
+            "/api/c2/files/write",
+            json={"filepath": "test_c2_doc.md", "content": "# C2 Test Document"}
+        )
+        assert write_resp.status_code == 200
+        assert write_resp.json()["status"] == "success"
+
+        # 3. Read file
+        read_resp = client.get("/api/c2/files/read?filepath=test_c2_doc.md")
+        assert read_resp.status_code == 200
+        assert read_resp.json()["content"] == "# C2 Test Document"
+
+def test_c2_router_calendar_override():
+    with TestClient(app) as client:
+        override_resp = client.post(
+            "/api/c2/calendar/override",
+            json={
+                "customer_phone": "+15553334444",
+                "customer_name": "Bob Jones",
+                "appointment_time": "2026-12-02T14:30:00",
+                "service_name": "General Maintenance"
+            }
+        )
+        assert override_resp.status_code == 200
+        json_resp = override_resp.json()
+        assert json_resp["status"] == "success"
+        assert json_resp["event"]["payment_status"] == "BOOKED_UNPAID_OVERRIDE"
