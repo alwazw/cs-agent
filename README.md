@@ -1,17 +1,18 @@
 # SMS Customer Service Chatbot Backend
 
-A Python FastAPI backend for an SMS customer service chatbot. The system processes incoming SMS webhooks, loads local Markdown documentation as a knowledge base, dynamically assigns personalities or initiative mappings by destination phone number (`To`), and generates an LLM response using standard OpenAI SDK.
+A production-ready Python FastAPI backend for an SMS customer service chatbot. The system processes incoming SMS webhooks, manages multi-turn conversation history using Redis, dynamically assigns initiative knowledge bases and personalities by destination phone number (`To`), provides human-in-the-loop (HITL) agent handoff, handles carrier opt-out keywords (STOP/UNSUBSCRIBE), and generates async LLM responses via the standard `openai` SDK.
 
 ---
 
-## Features
+## Key Features
 
-- **FastAPI Webhook**: Serves a `POST /webhook/sms` endpoint accepting form payloads (`From`, `To`, `Body`).
-- **Initiative & Phone Mapping**: Dynamically identifies the target initiative (knowledge base subfolder and personality persona) based on the recipient phone number (`To`).
-- **Knowledge Base Loader**: Scans local `/docs` (and initiative subdirectories like `/docs/support`) on startup and aggregates `.md` files into LLM context.
-- **Personality Engine**: Configured with 3 distinct conversational personas ("Warm and Empathetic", "Crisp and Professional", "Witty and Casual") assigned via initiative mapping or random selection per request.
-- **LLM Integration**: Uses standard `openai` SDK to generate concise SMS-suitable responses combining system prompt, knowledge base context, and user input.
-- **Comprehensive Testing**: Pytest unit tests using FastAPI `TestClient` covering file loading, phone number mapping, personality engine, and mocked LLM webhook responses.
+- **FastAPI Webhook**: `POST /webhook/sms` endpoint processing form payloads (`From`, `To`, `Body`). Supports both JSON and TwiML XML (`application/xml`) output formats.
+- **Session History & Memory (Redis / Async)**: Persists up to 10 messages (last 5 user/assistant turns) per customer in Redis using async pipeline calls with automatic 2-hour inactivity expiration (TTL). Includes a zero-config in-memory fallback when Redis is offline.
+- **Async LLM Integration**: Uses `AsyncOpenAI` for non-blocking LLM completions incorporating windowed chat history, persona instructions, and local Markdown documentation.
+- **Human-in-the-Loop (HITL) Handoff**: Detects escalation keywords (`agent`, `human`, `representative`, `operator`), shifts state to `HUMAN_REQUESTED`, and provides a `POST /agent/reply` endpoint for human support agents to reply directly.
+- **Carrier Opt-Out (STOP / UNSUBSCRIBE)**: Complies with SMS carrier requirements by flagging opted-out numbers and halting LLM execution until resubscribed (`START`).
+- **Initiative & Phone Mapping**: Dynamically routes requests based on recipient phone number (`To`) to dedicated `/docs` subdirectories (e.g. `/docs/support`, `/docs/sales`) and persona configurations.
+- **Comprehensive Unit Testing**: Pytest suite using `TestClient` and `anyio` testing session storage, HITL escalation, TwiML output, opt-out handling, and async LLM execution.
 
 ---
 
@@ -30,6 +31,7 @@ A Python FastAPI backend for an SMS customer service chatbot. The system process
 │       └── concierge.md
 ├── knowledge_base.py
 ├── personality_engine.py
+├── session_manager.py
 ├── llm_service.py
 ├── main.py
 ├── test_app.py
@@ -43,6 +45,7 @@ A Python FastAPI backend for an SMS customer service chatbot. The system process
 
 ### 1. Prerequisites
 - Python 3.10+
+- Redis (Optional; automatically falls back to in-memory store if Redis is unavailable)
 
 ### 2. Install Dependencies
 ```bash
@@ -50,28 +53,29 @@ pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment Variables
-Set your OpenAI API Key:
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
+export REDIS_HOST="localhost"   # Optional (default: localhost)
+export REDIS_PORT=6379          # Optional (default: 6379)
 ```
 
 ---
 
 ## Running the Application
 
-Start the FastAPI application with Uvicorn:
+Start the FastAPI backend with Uvicorn:
 
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be accessible at `http://localhost:8000`. Interactive API documentation is available at `http://localhost:8000/docs`.
+Interactive API documentation is available at `http://localhost:8000/docs`.
 
 ---
 
 ## Testing
 
-Run the test suite using `pytest`:
+Execute the complete test suite:
 
 ```bash
 pytest -v
@@ -79,23 +83,26 @@ pytest -v
 
 ---
 
-## Example Usage
+## Usage Examples
 
-### 1. Standard Request (Mapped Phone Number)
-Send an SMS to the Support initiative number (`+18005550100`):
-
+### 1. Standard SMS Webhook Request (JSON Output)
 ```bash
 curl -X POST "http://localhost:8000/webhook/sms" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "From=+15551234567&To=+18005550100&Body=How%20do%20I%20get%20help%3F"
+  -d "From=+15551234567&To=+18005550100&Body=How%20do%20I%20return%20an%20item%3F"
 ```
 
-### Response:
-```json
-{
-  "sender": "+15551234567",
-  "recipient": "+18005550100",
-  "persona": "Warm and Empathetic",
-  "reply": "For support requests, please provide your ticket ID and I'd be happy to assist!"
-}
+### 2. Twilio TwiML XML Response
+```bash
+curl -X POST "http://localhost:8000/webhook/sms" \
+  -H "Accept: application/xml" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "From=+15551234567&To=+18005550100&Body=Hello"
+```
+
+### 3. Human Agent Reply Endpoint
+```bash
+curl -X POST "http://localhost:8000/agent/reply" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_number": "+15551234567", "message": "Hi, I am Agent Smith. How can I assist you?"}'
 ```

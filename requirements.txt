@@ -5,3 +5,5 @@ python-multipart
 openai
 pytest
 httpx
+redis
+twilio
