@@ -203,3 +203,26 @@ def test_c2_router_calendar_override():
         json_resp = override_resp.json()
         assert json_resp["status"] == "success"
         assert json_resp["event"]["payment_status"] == "BOOKED_UNPAID_OVERRIDE"
+
+@pytest.mark.anyio
+async def test_telemetry_and_simulation():
+    from telemetry_service import telemetry_engine
+
+    # Test token usage alert
+    await telemetry_engine.register_token_usage(prompt_tokens=3000, completion_tokens=3000, session_id="test_sim")
+    alerts = telemetry_engine.get_alerts()
+    assert len(alerts) > 0
+    assert alerts[0]["category"] == "TOKEN_USAGE"
+    assert "High token consumption detected" in alerts[0]["message"]
+
+def test_c2_alerts_and_simulation_endpoints():
+    with TestClient(app) as client:
+        # Trigger simulation
+        sim_resp = client.post("/api/c2/demo/simulate?scenario=token_spike")
+        assert sim_resp.status_code == 200
+        assert sim_resp.json()["status"] == "simulation_started"
+
+        # Fetch alerts
+        alerts_resp = client.get("/api/c2/alerts")
+        assert alerts_resp.status_code == 200
+        assert "alerts" in alerts_resp.json()

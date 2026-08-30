@@ -1,6 +1,6 @@
 # Autonomous Communication & C2 Engine Backend
 
-An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Service Gateway & Command Control (C2) Dashboard. The system processes incoming SMS webhooks, manages multi-turn conversation history using Redis, provides human-in-the-loop (HITL) agent handoffs, supports payment-bypass calendar booking overrides, enables live C2 management of knowledge base files (`/docs/*.md`), and integrates with Open WebUI and Docker Model Runner.
+An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Service Gateway, Telemetry Notification Center, and Command Control (C2) Dashboard. The system processes incoming SMS webhooks, manages multi-turn conversation history using Redis, provides human-in-the-loop (HITL) agent handoffs, supports payment-bypass calendar booking overrides, enables live C2 management of knowledge base files (`/docs/*.md`), tracks system telemetry alerts, and integrates with Open WebUI and Docker Model Runner.
 
 ---
 
@@ -11,17 +11,17 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
    - Sets status to `BOOKED_UNPAID_OVERRIDE` and generates instant Google Meet/calendar event invites sent via SMS.
 
 2. **C2 Control Dashboard & File Engine (`c2_router.py`)**:
-   - Provides live file management endpoints (`/api/c2/files`, `/api/c2/files/read`, `/api/c2/files/write`) allowing real-time editing of `/docs/*.md` knowledge base files without server restarts.
-   - Provides C2 appointment override triggering (`/api/c2/calendar/override`).
+   - Live file management endpoints (`/api/c2/files`, `/api/c2/files/read`, `/api/c2/files/write`) allowing real-time editing of `/docs/*.md` knowledge base files without server restarts.
+   - C2 appointment override triggering (`/api/c2/calendar/override`).
 
-3. **Open WebUI + Docker Model Runner & Containerization (`docker-compose.yml`)**:
+3. **Telemetry Monitor, Notification Center & Demo Simulation (`telemetry_service.py`)**:
+   - Monitors token consumption velocity, stack health degradation, and latency.
+   - Dispatches system alerts (`/api/c2/alerts`).
+   - Built-in simulation endpoint (`/api/c2/demo/simulate?scenario=token_spike`) for testing sandbox notification alerts.
+
+4. **Open WebUI + Docker Model Runner & Containerization (`docker-compose.yml`)**:
    - Runs Open WebUI dashboard on port `3000`.
    - Orchestrates C2 backend, Redis session store, and Open WebUI services via Docker Compose.
-
-4. **Multi-Turn Redis Memory & Telecom Gateway (`session_manager.py`, `main.py`)**:
-   - Maintains windowed chat history (up to 10 messages) in Redis with automatic 2-hour inactivity TTL.
-   - Supports TwiML XML (`application/xml`) or JSON responses.
-   - Handles carrier opt-out keywords (`STOP`, `UNSUBSCRIBE`).
 
 ---
 
@@ -30,6 +30,7 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
 ```text
 .
 ├── docs/
+│   ├── USER_MANUAL.md
 │   ├── company_info.md
 │   ├── faq.md
 │   ├── sales/
@@ -39,6 +40,7 @@ An enterprise-grade Python FastAPI backend for an Autonomous SMS Customer Servic
 │   └── vip/
 │       └── concierge.md
 ├── calendar_service.py
+├── telemetry_service.py
 ├── c2_router.py
 ├── knowledge_base.py
 ├── personality_engine.py
@@ -91,3 +93,5 @@ pytest -v
 | `/api/c2/files/read` | `GET` | Read raw text content of a knowledge file. |
 | `/api/c2/files/write` | `POST` | Create or update content of a `/docs/*.md` knowledge file. |
 | `/api/c2/calendar/override` | `POST` | Trigger payment-bypass calendar booking override. |
+| `/api/c2/alerts` | `GET` | Retrieve real-time telemetry and token anomaly alerts. |
+| `/api/c2/demo/simulate` | `POST` | Trigger simulated load tests (`token_spike`, `stack_failure`, `normal`). |
